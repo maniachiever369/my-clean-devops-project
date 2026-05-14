@@ -1,20 +1,30 @@
+name: DevOps Verification Pipeline
+
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
   pull_request:
-    branches:
-      - main
-  workflow_dispatch:
+    branches: [ "main" ]
 
 jobs:
-  build:
+  validate-infrastructure:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Rename file
-        run: |
-          mv documentation README.md
-          git add .
-          git commit -m "Rename documentation to README.md"
-          git push
+      - name: Fetch Codebase
+        uses: actions/checkout@v4
+
+      - name: Lint Dockerfile for Security Risks
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+
+      - name: Build Container Image
+        run: docker build -t my-clean-app:${{ github.sha }} .
+
+      - name: Vulnerability Scan (Trivy)
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          image-ref: 'my-clean-app:${{ github.sha }}'
+          format: 'table'
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
