@@ -1,11 +1,15 @@
-FROM python:3.11 as builder
+# Stage 1: Build environment
+FROM python:3.11-slim AS builder
 WORKDIR /app
-RUN pip install --user --no-cache-dir flask==3.1.0
-
-FROM gcr.io/distroless/python3.11:nonroot
-WORKDIR /app
-COPY --from=builder /root/.local /root/.local
 COPY app.py .
-ENV PYTHONPATH=/root/.local
+RUN pip install --no-cache-dir flask==3.0.3
+
+# Stage 2: Verified Safe production environment
+FROM gcr.io/distroless/python3-debian12:nonroot
+WORKDIR /app
+COPY --from=builder /app /app
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+ENV PYTHONPATH=/usr/local/lib/python3.11/site-packages
 EXPOSE 5000
-CMD ["/root/.local/bin/python", "app.py"]
+CMD ["app.py"]
+
