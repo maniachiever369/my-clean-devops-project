@@ -1,6 +1,10 @@
-FROM python:3.11-slim
+FROM python:3.11 as builder
 WORKDIR /app
+RUN pip install --user --no-cache-dir flask==3.1.0
+
+FROM gcr.io/distroless/python3.11
+COPY --from=builder /root/.local /root/.local
 COPY app.py .
-RUN pip install --no-cache-dir flask==3.1.0
+ENV PYTHONPATH=/root/.local
 EXPOSE 5000
-CMD ["python", "app.py"]
+CMD ["/root/.local/bin/python", "app.py"]
